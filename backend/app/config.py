@@ -1,17 +1,17 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Application settings
+    # Application info
     APP_NAME: str = "PR Health Dashboard"
 
-    # JWT settings
-    JWT_SECRET_KEY: str = "super-secret-key-change-this"
+    # JWT Configuration
+    JWT_SECRET_KEY: str = "CHANGE_THIS_SECRET_KEY"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
 
-    # Database settings
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/pr_dashboard"
+    # Database Configuration
+    DATABASE_URL: str = "postgresql://postgres:root@localhost:5432/pr_dashboard"
 
     class Config:
         env_file = ".env"

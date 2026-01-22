@@ -4,10 +4,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
 
-# Create database engine
+# Create the database engine
 engine = create_engine(settings.DATABASE_URL)
 
-# Create session factory
+# Create a database session factory
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
