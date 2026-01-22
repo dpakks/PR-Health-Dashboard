@@ -4,11 +4,17 @@ from fastapi.openapi.utils import get_openapi
 from app.database import Base, engine
 from app import models
 from app.users import router as users_router
+from app.projects import router as project_router
+
+
+
 
 app = FastAPI(
     title="PR Health Dashboard API",
     version="0.1.0"
 )
+
+app.include_router(project_router)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
