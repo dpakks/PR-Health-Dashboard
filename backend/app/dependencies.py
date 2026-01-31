@@ -9,7 +9,7 @@ from app import models
 
 
 # OAuth2 scheme (token extractor)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 
 def get_current_user(

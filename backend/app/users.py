@@ -68,8 +68,76 @@ def login(
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role}
     )
+    print("User from DB:", user)
+
 
     return {
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+# =========================
+# Delete User (ADMIN only)
+# =========================
+
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    """
+    Delete a user (Admin only)
+    """
+
+    user = db.query(models.User).filter(
+        models.User.id == user_id
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    db.delete(user)
+    db.commit()
+
+    return {"message": "User deleted successfully"}
+
+# =========================
+# Get All Users (Admin only)
+# =========================
+
+@router.get("/", response_model=list[schemas.UserResponse])
+def get_all_users(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    """
+    Admin can view all users
+    """
+    return db.query(models.User).all()
+
+# =========================
+# Get User By ID (Admin only)
+# =========================
+
+@router.get("/{user_id}", response_model=schemas.UserResponse)
+def get_user_by_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    user = db.query(models.User).filter(
+        models.User.id == user_id
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    return user
+

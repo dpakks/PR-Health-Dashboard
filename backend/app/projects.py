@@ -7,7 +7,6 @@ Used by Admin and Tech Leads for dashboard access.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-
 from app.database import get_db
 from app.models import Project, User, UserProject
 from app.auth import get_current_user
@@ -25,17 +24,12 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Admin creates a new project (GitHub repo).
-    """
-
     if current_user.role != "ADMIN":
         raise HTTPException(status_code=403, detail="Only admins can create projects")
 
     new_project = Project(
-        project_name=project.project_name,
-        github_org=project.github_org,
-        repo_name=project.repo_name,
+        name=project.name,
+        repo_url=project.repo_url,
         created_by=current_user.id
     )
 
@@ -44,7 +38,6 @@ def create_project(
     db.refresh(new_project)
 
     return new_project
-
 
 # =====================================================
 # ASSIGN TECH LEAD TO PROJECT (Admin only)
@@ -99,3 +92,68 @@ def get_projects(
     )
 
     return projects
+
+# =====================================================
+# DELETE PROJECT (Admin only)
+# =====================================================
+
+@router.delete("/{project_id}", status_code=200)
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Delete a project (Admin only)
+    """
+
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can delete projects"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id
+    ).first()
+
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found"
+        )
+
+    db.delete(project)
+    db.commit()
+
+    return {"message": "Project deleted successfully"}
+
+# =====================================================
+# Get Project By ID (Admin only)
+# =====================================================
+
+@router.get("/{project_id}", response_model=ProjectOut)
+def get_project_by_id(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can view project details"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id
+    ).first()
+
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found"
+        )
+
+    return project
+
+
