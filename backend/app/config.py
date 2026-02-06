@@ -13,8 +13,9 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = "postgresql://postgres:root@localhost:5432/pr_dashboard"
 
+    GITHUB_TOKEN: str = "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"
+
     class Config:
         env_file = ".env"
-
 
 settings = Settings()

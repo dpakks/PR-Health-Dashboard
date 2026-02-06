@@ -10,10 +10,14 @@ from typing import List
 from app.database import get_db
 from app.models import Project, User, UserProject
 from app.auth import get_current_user
-from app.schemas import ProjectCreate, ProjectOut
+from app.schemas import ProjectCreate, ProjectOut, PullRequestOut
+from app.services.github_service import GitHubService
+from datetime import datetime, timezone
+from collections import defaultdict
+
+STALE_DAYS = 7
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
-
 
 # =====================================================
 # CREATE PROJECT (Admin only)
@@ -156,4 +160,246 @@ def get_project_by_id(
 
     return project
 
+@router.get("/test/github")
+def test_github():
+    github = GitHubService()
+    prs = github.get_open_pull_requests(
+        owner="octocat",
+        repo="Hello-World"
+    )
+    return prs
 
+
+
+# =====================================================
+# GET OPEN PULL REQUESTS FOR A PROJECT
+# =====================================================
+@router.get("/{project_id}/pull-requests", response_model=list[PullRequestOut])
+def get_project_pull_requests(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Fetch open pull requests for a project from GitHub.
+    Admin → any project
+    Tech Lead → only assigned projects
+    Adds PR metrics: days_open & is_stale
+    """
+
+    # -------------------------------------------------
+    # 1. Fetch project
+    # -------------------------------------------------
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # -------------------------------------------------
+    # 2. Authorization
+    # -------------------------------------------------
+    if current_user.role != "ADMIN":
+        assignment = db.query(UserProject).filter(
+            UserProject.project_id == project_id,
+            UserProject.user_id == current_user.id
+        ).first()
+
+        if not assignment:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view this project"
+            )
+
+    # -------------------------------------------------
+    # 3. Extract GitHub owner & repo
+    # -------------------------------------------------
+    repo_url = project.repo_url.rstrip("/")
+    try:
+        owner = repo_url.split("/")[-2]
+        repo = repo_url.split("/")[-1]
+    except IndexError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+
+    # -------------------------------------------------
+    # 4. Fetch PRs from GitHub
+    # -------------------------------------------------
+    github = GitHubService()
+    prs = github.get_open_pull_requests(owner=owner, repo=repo)
+
+    # -------------------------------------------------
+    # 5. Compute metrics
+    # -------------------------------------------------
+    now = datetime.now(timezone.utc)
+    normalized_prs = []
+
+    for pr in prs:
+        created_at = datetime.fromisoformat(
+            pr["created_at"].replace("Z", "+00:00")
+        )
+
+        days_open = (now - created_at).days
+
+        normalized_prs.append({
+            "id": pr["number"],
+            "title": pr["title"],
+            "author": pr["user"]["login"],
+            "state": pr["state"],
+            "source_branch": pr["head"]["ref"],
+            "target_branch": pr["base"]["ref"],
+            "created_at": created_at,
+            "days_open": days_open,
+            "is_stale": days_open > STALE_DAYS,
+            "url": pr["html_url"]
+        })
+
+    return normalized_prs
+
+@router.get("/{project_id}/pull-requests/summary")
+def get_pr_summary(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    PR Summary Metrics:
+    - Total open PRs
+    - Stale PR count
+    - Average days open
+    - Oldest PR age
+    """
+
+    # -------------------------------------------------
+    # 1. Fetch project
+    # -------------------------------------------------
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # -------------------------------------------------
+    # 2. Authorization
+    # -------------------------------------------------
+    if current_user.role != "ADMIN":
+        assignment = db.query(UserProject).filter(
+            UserProject.project_id == project_id,
+            UserProject.user_id == current_user.id
+        ).first()
+
+        if not assignment:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized"
+            )
+
+    # -------------------------------------------------
+    # 3. Extract owner & repo
+    # -------------------------------------------------
+    repo_url = project.repo_url.rstrip("/")
+    owner = repo_url.split("/")[-2]
+    repo = repo_url.split("/")[-1]
+
+    # -------------------------------------------------
+    # 4. Fetch PRs
+    # -------------------------------------------------
+    github = GitHubService()
+    prs = github.get_open_pull_requests(owner=owner, repo=repo)
+
+    if not prs:
+        return {
+            "total_open_prs": 0,
+            "stale_prs": 0,
+            "average_days_open": 0,
+            "oldest_pr_days": 0
+        }
+
+    # -------------------------------------------------
+    # 5. Compute metrics
+    # -------------------------------------------------
+    now = datetime.now(timezone.utc)
+    days_open_list = []
+
+    for pr in prs:
+        created_at = datetime.fromisoformat(
+            pr["created_at"].replace("Z", "+00:00")
+        )
+        days_open = (now - created_at).days
+        days_open_list.append(days_open)
+
+    total_open_prs = len(prs)
+    stale_prs = len([d for d in days_open_list if d > STALE_DAYS])
+    average_days_open = round(sum(days_open_list) / total_open_prs)
+    oldest_pr_days = max(days_open_list)
+
+    return {
+        "total_open_prs": total_open_prs,
+        "stale_prs": stale_prs,
+        "average_days_open": average_days_open,
+        "oldest_pr_days": oldest_pr_days
+    }
+
+@router.get("/{project_id}/pull-requests/trends")
+def get_pr_trends(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    PR Trend Metrics:
+    - PRs opened per day
+    - PRs opened per week
+    """
+
+    # -------------------------------------------------
+    # 1. Fetch project
+    # -------------------------------------------------
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # -------------------------------------------------
+    # 2. Authorization
+    # -------------------------------------------------
+    if current_user.role != "ADMIN":
+        assignment = db.query(UserProject).filter(
+            UserProject.project_id == project_id,
+            UserProject.user_id == current_user.id
+        ).first()
+
+        if not assignment:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+    # -------------------------------------------------
+    # 3. Extract owner & repo
+    # -------------------------------------------------
+    repo_url = project.repo_url.rstrip("/")
+    owner = repo_url.split("/")[-2]
+    repo = repo_url.split("/")[-1]
+
+    # -------------------------------------------------
+    # 4. Fetch PRs from GitHub
+    # -------------------------------------------------
+    github = GitHubService()
+    prs = github.get_open_pull_requests(owner=owner, repo=repo)
+
+    # -------------------------------------------------
+    # 5. Build trends
+    # -------------------------------------------------
+    daily_counts = defaultdict(int)
+    weekly_counts = defaultdict(int)
+
+    for pr in prs:
+        created_at = datetime.fromisoformat(
+            pr["created_at"].replace("Z", "+00:00")
+        )
+
+        day_key = created_at.strftime("%Y-%m-%d")
+        week_key = f"{created_at.year}-W{created_at.isocalendar().week}"
+
+        daily_counts[day_key] += 1
+        weekly_counts[week_key] += 1
+
+    return {
+        "daily": dict(daily_counts),
+        "weekly": dict(weekly_counts)
+    }

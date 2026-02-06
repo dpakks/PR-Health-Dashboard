@@ -58,3 +58,20 @@ class ProjectOut(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+# =========================
+# Pull Request Schemas
+# =========================
+
+class PullRequestOut(BaseModel):
+    id: int
+    title: str
+    author: str
+    state: str
+    source_branch: str
+    target_branch: str
+    created_at: datetime
+    days_open: int
+    is_stale: bool
+    url: str
+
