@@ -4,6 +4,7 @@ from app.database import Base, engine
 from app import models
 from app.users import router as users_router
 from app.projects import router as project_router
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="PR Health Dashboard API",
@@ -14,6 +15,14 @@ app.include_router(project_router)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React app
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Routers
 app.include_router(users_router)

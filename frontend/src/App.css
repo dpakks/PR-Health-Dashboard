@@ -1,38 +1,220 @@
-.App {
+/* RESET */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* LOGIN CARD */
+.login-container {
+  max-width: 380px;
+  margin: 90px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+}
+
+.login-title {
   text-align: center;
+  font-size: 28px;
+  margin-bottom: 8px;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.login-subtitle {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+.login-form input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #2fb36f;
+}
+
+.login-form button {
+  width: 100%;
+  padding: 12px;
+  background: #2fb36f;
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.login-form button:hover {
+  background: #24985d;
+}
+
+.error-text {
+  margin-top: 12px;
+  text-align: center;
+  color: #d33;
+  font-size: 13px;
+}
+
+/* BLANK PAGE */
+.blank-page {
+  height: 100vh;
+  background: #ffffff;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #2fb36f;
+  color: white;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.4s ease-in-out;
+
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -240px;
+  width: 240px;
+  height: 100vh;
+  background: #1f2937;
+  color: white;
+  padding-top: 60px;
+  transition: left 0.3s ease;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 14px 20px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.sidebar li:hover {
+  background: #374151;
+}
+
+/* Logout at bottom */
+.sidebar .logout {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  color: #f87171;
+}
+
+/* =========================
+   HAMBURGER
+========================= */
+
+.hamburger {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  font-size: 26px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+/* =========================
+   PAGE CONTENT
+========================= */
+
+.page-content {
+  padding: 40px;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* =========================
+   PROJECTS PAGE
+========================= */
+
+.projects-page {
+  padding: 40px;
+}
+
+.projects-title {
+  font-size: 22px;
+  margin-bottom: 30px;
+}
+
+.projects-grid {
   display: flex;
-  flex-direction: column;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.project-card {
+  width: 110px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.project-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  margin: auto;
 }
 
-.App-link {
-  color: #61dafb;
+.project-avatar.add {
+  background: white;
+  border: 2px dashed #c7c7c7;
+  color: #555;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.project-name {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+/* No project message */
+.no-projects {
+  font-size: 15px;
+  color: #6b7280;
 }
