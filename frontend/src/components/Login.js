@@ -1,22 +1,31 @@
-import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
+import { useState } from "react";
+import { jwtDecode } from "jwt-decode";
 
-export default function Login() {
+function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     try {
       const data = await login(email, password);
+
+      // ✅ Decode JWT properly
+      const decoded = jwtDecode(data.access_token);
+
+      // ✅ Store token & role
       localStorage.setItem("token", data.access_token);
-      navigate("/welcome");
-    } catch {
+      localStorage.setItem("role", decoded.role);
+
+      // 🚀 Redirect after login
+      navigate("/projects");
+
+    } catch (err) {
       setError("Invalid email or password");
     }
   };
@@ -28,7 +37,7 @@ export default function Login() {
         Enter your email and password to securely access your account
       </p>
 
-      <form className="login-form" onSubmit={handleLogin}>
+      <form className="login-form" onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Email address"
@@ -52,3 +61,5 @@ export default function Login() {
     </div>
   );
 }
+
+export default Login;

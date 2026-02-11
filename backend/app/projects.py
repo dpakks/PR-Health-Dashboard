@@ -22,7 +22,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 # =====================================================
 # CREATE PROJECT (Admin only)
 # =====================================================
-@router.post("/", response_model=ProjectOut)
+@router.post("/create", response_model=ProjectOut)
 def create_project(
     project: ProjectCreate,
     db: Session = Depends(get_db),
@@ -74,7 +74,7 @@ def assign_project(
 # =====================================================
 # GET PROJECTS (Admin / Tech Lead)
 # =====================================================
-@router.get("/", response_model=List[ProjectOut])
+@router.get("/getAll", response_model=List[ProjectOut])
 def get_projects(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

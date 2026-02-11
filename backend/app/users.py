@@ -13,7 +13,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 # Create User (ADMIN only)
 # =========================
 
-@router.post("/", response_model=schemas.UserResponse)
+@router.post("/createUser", response_model=schemas.UserResponse)
 def create_user(
     user: schemas.UserCreate,
     db: Session = Depends(get_db),
@@ -109,7 +109,7 @@ def delete_user(
 # Get All Users (Admin only)
 # =========================
 
-@router.get("/", response_model=list[schemas.UserResponse])
+@router.get("/getAllUsers", response_model=list[schemas.UserResponse])
 def get_all_users(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)

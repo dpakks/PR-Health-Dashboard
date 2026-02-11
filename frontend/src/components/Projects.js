@@ -1,57 +1,139 @@
-import React, { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
+import { useEffect, useState } from "react";
+import { getProjects, createProject } from "../services/projectService";
 
-export default function Projects() {
-  const [role, setRole] = useState("");
+const COLORS = ["#60a5fa", "#fb7185", "#fbbf24", "#a855f7", "#34d399"];
+
+function Projects() {
   const [projects, setProjects] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [name, setName] = useState("");
+  const [repoUrl, setRepoUrl] = useState("");
+  const role = localStorage.getItem("role");
+
+  // Fetch projects
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjects();
+      setProjects(data);
+    } catch (error) {
+      console.error("Failed to fetch projects", error);
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const decoded = jwtDecode(token);
-    setRole(decoded.role);
-
-    // TEMP MOCK DATA (replace with API later)
-    if (decoded.role === "ADMIN") {
-      setProjects([
-        { id: 1, name: "Marketing" },
-        { id: 2, name: "Feature lists" },
-        { id: 3, name: "boardme development" },
-        { id: 4, name: "UIDD development" },
-      ]);
-    } else {
-      // Tech Lead example
-      setProjects([]); // try empty & non-empty cases
-    }
+    fetchProjects();
   }, []);
 
+  // Get initials
+  const getInitials = (name) =>
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+
+  // Submit project
+  const handleSubmit = async () => {
+    if (!name || !repoUrl) {
+      alert("All fields are required");
+      return;
+    }
+
+    try {
+      await createProject({
+        name,
+        repo_url: repoUrl,
+      });
+
+      setShowModal(false);
+      setName("");
+      setRepoUrl("");
+      fetchProjects(); // refresh
+    } catch (error) {
+      console.error("Project creation failed", error);
+      alert("Failed to create project");
+    }
+  };
+
+  // Clear form
+  const handleClear = () => {
+    setName("");
+    setRepoUrl("");
+  };
+
   return (
-    <div className="projects-page">
+    <div className="projects-container">
       <h2 className="projects-title">Projects</h2>
 
-      {projects.length === 0 && role !== "ADMIN" ? (
+      <div className="projects-grid">
+        {projects.map((project, index) => (
+          <div key={project.id} className="project-card">
+            <div
+              className="project-icon"
+              style={{ background: COLORS[index % COLORS.length] }}
+            >
+              {getInitials(project.name)}
+            </div>
+            <p className="project-name">{project.name}</p>
+          </div>
+        ))}
+
+        {/* ADMIN ONLY → ADD PROJECT */}
+        {role === "ADMIN" && (
+          <div
+            className="project-card add-project"
+            onClick={() => setShowModal(true)}
+          >
+            <div className="project-icon add-icon">+</div>
+            <p className="project-name">Add a project</p>
+          </div>
+        )}
+      </div>
+
+      {/* TECH LEAD WITH NO PROJECTS */}
+      {role !== "ADMIN" && projects.length === 0 && (
         <p className="no-projects">
           No projects assigned for you
         </p>
-      ) : (
-        <div className="projects-grid">
-          {projects.map((project) => (
-            <div key={project.id} className="project-card">
-              <div className="project-avatar">
-                {project.name[0].toUpperCase()}
-              </div>
-              <span className="project-name">{project.name}</span>
-            </div>
-          ))}
+      )}
 
-          {/* Add Project Card (ADMIN ONLY) */}
-          {role === "ADMIN" && (
-            <div className="project-card add-project">
-              <div className="project-avatar add">+</div>
-              <span className="project-name">Add a project</span>
+      {/* MODAL */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Add Project</h3>
+
+            <input
+              type="text"
+              placeholder="Project Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
+            <input
+              type="text"
+              placeholder="GitHub Repo URL"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+            />
+
+            <div className="modal-actions">
+              <button onClick={handleSubmit}>Submit</button>
+              <button onClick={handleClear} className="secondary">
+                Clear
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="danger"
+              >
+                Close
+              </button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+export default Projects;

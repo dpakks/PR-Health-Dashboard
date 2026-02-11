@@ -65,115 +65,74 @@
   font-size: 13px;
 }
 
-/* BLANK PAGE */
-.blank-page {
+/* LAYOUT */
+.layout {
+  display: flex;
   height: 100vh;
-  background: #ffffff;
 }
 
-/* TOAST */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #2fb36f;
-  color: white;
-  padding: 14px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
-  animation: fadeIn 0.4s ease-in-out;
-
+.page-content {
+  flex: 1;
+  padding: 30px;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
-
+/* SIDEBAR */
 .sidebar {
-  position: fixed;
-  top: 0;
-  left: -240px;
-  width: 240px;
-  height: 100vh;
-  background: #1f2937;
+  background: #0f172a;
   color: white;
-  padding-top: 60px;
-  transition: left 0.3s ease;
+  transition: width 0.25s ease;
+  display: flex;
+  flex-direction: column;
 }
 
-.sidebar.open {
-  left: 0;
+.sidebar.collapsed { width: 70px; }
+.sidebar.expanded { width: 220px; }
+
+.sidebar-header {
+  padding: 16px;
+  text-align: center;
 }
 
-.sidebar ul {
+.hamburger {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.sidebar-menu {
   list-style: none;
   padding: 0;
 }
 
-.sidebar li {
-  padding: 14px 20px;
+.sidebar-menu li {
+  padding: 14px 18px;
   cursor: pointer;
-  font-size: 15px;
+  display: flex;
+  gap: 10px;
 }
 
-.sidebar li:hover {
-  background: #374151;
+.sidebar-menu li:hover {
+  background: #1e293b;
 }
 
-/* Logout at bottom */
-.sidebar .logout {
-  position: absolute;
-  bottom: 20px;
-  width: 100%;
-  color: #f87171;
-}
-
-/* =========================
-   HAMBURGER
-========================= */
-
-.hamburger {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  font-size: 26px;
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
   cursor: pointer;
-  z-index: 1000;
 }
 
-/* =========================
-   PAGE CONTENT
-========================= */
-
-.page-content {
-  padding: 40px;
+.sidebar-footer:hover {
+  background: #1e293b;
 }
-
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* =========================
-   PROJECTS PAGE
-========================= */
-
-.projects-page {
-  padding: 40px;
+.projects-container {
+  padding: 30px;
 }
 
 .projects-title {
   font-size: 22px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .projects-grid {
@@ -183,29 +142,23 @@
 }
 
 .project-card {
-  width: 110px;
+  width: 120px;
   text-align: center;
   cursor: pointer;
 }
 
-.project-avatar {
+.project-icon {
   width: 90px;
   height: 90px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
-  color: white;
-  font-size: 32px;
-  font-weight: bold;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
   margin: auto;
-}
-
-.project-avatar.add {
-  background: white;
-  border: 2px dashed #c7c7c7;
-  color: #555;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
 .project-name {
@@ -213,8 +166,207 @@
   font-size: 13px;
 }
 
-/* No project message */
-.no-projects {
-  font-size: 15px;
-  color: #6b7280;
+.add-project .project-icon {
+  background: #f8fafc;
+  color: #475569;
+  border: 2px dashed #cbd5e1;
+  box-shadow: none;
 }
+
+.add-icon {
+  font-size: 40px;
+}
+
+.no-projects {
+  margin-top: 30px;
+  color: #666;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal {
+  background: white;
+  padding: 24px;
+  width: 360px;
+  border-radius: 12px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+.modal h3 {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.modal input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-actions button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.modal-actions .secondary {
+  background: #e5e7eb;
+}
+
+.modal-actions .danger {
+  background: #ef4444;
+  color: white;
+}
+
+/* ADD PROJECT CARD */
+.add-card {
+  border: 2px dashed #cbd5e1;
+  font-size: 32px;
+  cursor: pointer;
+  color: #64748b;
+}
+/* USERS PAGE */
+.users-container {
+  padding: 40px;
+}
+
+.users-title {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.users-table-wrapper {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.users-table th {
+  background: #f1f5f9;
+  padding: 14px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.users-table td {
+  padding: 14px;
+  border-top: 1px solid #eee;
+  font-size: 14px;
+}
+
+.users-table tr:hover {
+  background: #f9fafb;
+}
+
+.no-users {
+  margin-top: 20px;
+  color: #666;
+}
+
+/* USERS HEADER */
+.users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.add-user-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-user-btn:hover {
+  background: #1e40af;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal input,
+.modal select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.submit-btn {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+.clear-btn {
+  background: #facc15;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+.close-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+
+
