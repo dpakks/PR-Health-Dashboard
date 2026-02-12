@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 60
 
     # Database Configuration
-    DATABASE_URL: str
+    DATABASE_URL: str 
+
     GITHUB_TOKEN: str 
 
     class Config:

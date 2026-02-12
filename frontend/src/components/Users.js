@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { getUsers, createUser } from "../services/userService";
+import { getUsers, createUser, deleteUser } from "../services/userService";
 
 function Users() {
   const [users, setUsers] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -62,6 +64,18 @@ function Users() {
     }
   };
 
+  const handleDeleteClick = (user) => {
+    setSelectedUser(user);
+    setDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    await deleteUser(selectedUser.id);
+    setDeleteModal(false);
+    setSelectedUser(null);
+    fetchUsers(); // refresh table
+  };
+
   const handleClear = () => {
     setFormData({
       name: "",
@@ -95,7 +109,9 @@ function Users() {
                   {header.replace("_", " ").toUpperCase()}
                 </th>
               ))}
+              <th>ACTIONS</th>
             </tr>
+
           </thead>
 
           <tbody>
@@ -107,7 +123,19 @@ function Users() {
                       ? formatDate(user[header])
                       : user[header]}
                   </td>
+
                 ))}
+                <td>
+                  {role === "ADMIN" && (
+                    <span
+                      className="delete-icon"
+                      onClick={() => handleDeleteClick(user)}
+                    >
+                      🗑
+                    </span>
+                  )}
+                </td>
+
               </tr>
             ))}
           </tbody>
@@ -116,6 +144,31 @@ function Users() {
 
       {users.length === 0 && (
         <p className="no-users">No users found</p>
+      )}
+
+      {deleteModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Delete User</h3>
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>{selectedUser?.name}</strong>?
+            </p>
+
+            <div className="modal-buttons">
+              <button className="submit-btn" onClick={confirmDelete}>
+                Ok
+              </button>
+
+              <button
+                className="close-btn"
+                onClick={() => setDeleteModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL */}

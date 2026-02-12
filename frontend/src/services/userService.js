@@ -29,3 +29,18 @@ export const createUser = async (userData) => {
 
   return response.data;
 };
+
+export const deleteUser = async (id) => {
+  const token = localStorage.getItem("token");
+
+  const response = await axios.delete(
+    `${API_URL}/users/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

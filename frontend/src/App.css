@@ -367,6 +367,15 @@
   padding: 8px 12px;
   border-radius: 5px;
 }
+.delete-icon {
+  cursor: pointer;
+  font-size: 18px;
+  color: red;
+}
+
+/* .delete-icon:hover {
+  color: red;
+} */
 
 
 
