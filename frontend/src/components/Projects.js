@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { getProjects, createProject } from "../services/projectService";
+import { useNavigate } from "react-router-dom";
+
 
 const COLORS = ["#60a5fa", "#fb7185", "#fbbf24", "#a855f7", "#34d399"];
 
 function Projects() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
@@ -63,11 +66,12 @@ function Projects() {
 
   return (
     <div className="projects-container">
+
       <h2 className="projects-title">Projects</h2>
 
       <div className="projects-grid">
         {projects.map((project, index) => (
-          <div key={project.id} className="project-card">
+          <div key={project.id} className="project-card" onClick={() => navigate(`/projects/${project.id}`)}>
             <div
               className="project-icon"
               style={{ background: COLORS[index % COLORS.length] }}

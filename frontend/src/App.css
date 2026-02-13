@@ -373,9 +373,76 @@
   color: red;
 }
 
-/* .delete-icon:hover {
-  color: red;
-} */
+/* DASHBOARD PAGE */
+.dashboard-container {
+  padding: 40px;
+}
 
+.back-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
 
+.dashboard-title {
+  margin-bottom: 20px;
+}
 
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-table th {
+  text-align: left;
+  padding: 14px;
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.dashboard-table td {
+  padding: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+/* DAYS OPEN BADGE */
+.days-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+}
+
+.days-badge.warning {
+  background: #facc15; /* yellow */
+}
+
+.days-badge.danger {
+  background: #ef4444; /* red */
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.delete-project-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.delete-project-btn:hover {
+  background: #dc2626;
+}

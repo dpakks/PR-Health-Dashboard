@@ -3,6 +3,7 @@ import Login from "./components/Login";
 import Projects from "./components/Projects";
 import Users from "./components/Users";
 import DashboardLayout from "./components/DashboardLayout";
+import ProjectDashboard from "./components/ProjectDashboard";
 import "./App.css";
 
 function App() {
@@ -21,7 +22,14 @@ function App() {
             </DashboardLayout>
           }
         />
-
+        <Route
+          path="/projects/:id"
+          element={
+            <DashboardLayout role={role}>
+              <ProjectDashboard />
+            </DashboardLayout>
+          }
+        />
         <Route
           path="/users"
           element={
