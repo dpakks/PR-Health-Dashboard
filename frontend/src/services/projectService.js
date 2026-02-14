@@ -53,3 +53,18 @@ export const deleteProject = async (projectId) => {
     },
   });
 };
+
+export const getPRSummary = async (projectId) => {
+  const token = localStorage.getItem("token");
+
+  const response = await axios.get(
+    `${API_URL}/projects/${projectId}/pull-requests/summary`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

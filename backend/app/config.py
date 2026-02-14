@@ -13,9 +13,8 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str 
 
-    GITHUB_TOKEN: str
-
-
+    GITHUB_TOKEN: str 
+    
     class Config:
         env_file = ".env"
 

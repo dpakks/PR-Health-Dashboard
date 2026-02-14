@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getProjectPullRequests, deleteProject } from "../services/projectService";
+import { getProjectPullRequests, deleteProject, getPRSummary } from "../services/projectService";
+// const role = localStorage.getItem("role");
 
 
 function ProjectDashboard() {
@@ -8,6 +9,8 @@ function ProjectDashboard() {
     const navigate = useNavigate();
     const [prs, setPrs] = useState([]);
     const [headers, setHeaders] = useState([]);
+    const [summary, setSummary] = useState(null);
+
 
     useEffect(() => {
         const fetchPRs = async () => {
@@ -21,6 +24,18 @@ function ProjectDashboard() {
                 setHeaders(filteredHeaders);
             }
         };
+
+        const fetchSummary = async () => {
+            try {
+                const data = await getPRSummary(id);
+                setSummary(data);
+            } catch (error) {
+                console.error("Failed to fetch summary", error);
+            }
+        };
+
+        fetchSummary();
+
 
         fetchPRs();
     }, [id]);
@@ -54,6 +69,30 @@ function ProjectDashboard() {
             </button>
 
             <h2 className="dashboard-title">Open Pull Requests</h2>
+            {summary && (
+                <div className="summary-container">
+                    <div className="summary-card purple">
+                        <h2>{summary.total_open_prs}</h2>
+                        <p>Total Open PRs</p>
+                    </div>
+
+                    <div className="summary-card blue">
+                        <h2>{summary.stale_prs}</h2>
+                        <p>Stale PRs</p>
+                    </div>
+
+                    <div className="summary-card orange">
+                        <h2>{summary.average_days_open}</h2>
+                        <p>Average Days Open</p>
+                    </div>
+
+                    <div className="summary-card red">
+                        <h2>{summary.oldest_pr_days}</h2>
+                        <p>Oldest PR Days</p>
+                    </div>
+                </div>
+            )}
+
             <div className="dashboard-header">
                 <button className="delete-project-btn" onClick={handleDelete}>
                     🗑 Delete Project
