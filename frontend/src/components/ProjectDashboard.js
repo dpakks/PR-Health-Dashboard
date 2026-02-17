@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getProjectPullRequests, deleteProject, getPRSummary } from "../services/projectService";
-// const role = localStorage.getItem("role");
+import { getProjectPullRequests, deleteProject, getPRSummary, getProjectUsers, removeUserFromProject, getAllTechLeads, assignUserToProject } from "../services/projectService";
+
 
 
 function ProjectDashboard() {
@@ -10,6 +10,18 @@ function ProjectDashboard() {
     const [prs, setPrs] = useState([]);
     const [headers, setHeaders] = useState([]);
     const [summary, setSummary] = useState(null);
+    const [showOwnersModal, setShowOwnersModal] = useState(false);
+    const [owners, setOwners] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [assignedUsers, setAssignedUsers] = useState([]);
+    const [allTechLeads, setAllTechLeads] = useState([]);
+    const [assignselectedUser, setAssignSelectedUser] = useState("");
+    const role = localStorage.getItem("role");
+    const isAdmin = role === "ADMIN";
+
+
 
 
     useEffect(() => {
@@ -57,6 +69,30 @@ function ProjectDashboard() {
         }
     };
 
+    const fetchOwners = async () => {
+        try {
+            const data = await getProjectUsers(id);
+            setOwners(data);
+        } catch (error) {
+            console.error("Failed to fetch project users", error);
+        }
+    };
+
+    const fetchAssignData = async () => {
+        try {
+            const assigned = await getProjectUsers(id);
+            const allUsers = await getAllTechLeads();
+
+            setAssignedUsers(assigned);
+            setAllTechLeads(allUsers);
+        } catch (err) {
+            console.error("Failed to fetch assignment data", err);
+        }
+    };
+
+    const unassignedUsers = allTechLeads.filter(
+        (user) => !assignedUsers.some((u) => u.id === user.id)
+    );
 
     return (
         <div className="dashboard-container">
@@ -93,11 +129,29 @@ function ProjectDashboard() {
                 </div>
             )}
 
-            <div className="dashboard-header">
+            {isAdmin && (<div className="dashboard-header">
+                <button
+                    className="assign-btn"
+                    onClick={() => {
+                        fetchAssignData();
+                        setShowAssignModal(true);
+                    }}
+                >
+                    ➕ Assign Tech Lead
+                </button>
+                <button
+                    className="view-owner-btn"
+                    onClick={() => {
+                        fetchOwners();
+                        setShowOwnersModal(true);
+                    }}
+                >
+                    👥 View Project Owners
+                </button>
                 <button className="delete-project-btn" onClick={handleDelete}>
                     🗑 Delete Project
                 </button>
-            </div>
+            </div>)}
 
 
             <table className="dashboard-table">
@@ -134,6 +188,168 @@ function ProjectDashboard() {
                     ))}
                 </tbody>
             </table>
+
+            {showOwnersModal && (
+                <div className="modal-overlay">
+                    <div className="modal large">
+                        <h3>Project Owners</h3>
+
+                        <table className="dashboard-table">
+                            <thead>
+                                <tr>
+                                    <th>NAME</th>
+                                    <th>EMAIL</th>
+                                    <th>ROLE</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {owners.map((user) => (
+                                    <tr key={user.id}>
+                                        <td>{user.name}</td>
+                                        <td>{user.email}</td>
+                                        <td>{user.role}</td>
+                                        <td>
+                                            <button
+                                                className="danger-btn"
+                                                onClick={() => {
+                                                    setSelectedUser(user);
+                                                    setShowRemoveConfirm(true);
+                                                }}
+                                            >
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        <button
+                            className="secondary-btn"
+                            onClick={() => setShowOwnersModal(false)}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {showRemoveConfirm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h4>
+                            Are you sure you want to remove{" "}
+                            <strong>{selectedUser?.name}</strong>?
+                        </h4>
+
+                        <div className="modal-actions">
+                            <button
+                                className="danger-btn"
+                                onClick={async () => {
+                                    try {
+                                        await removeUserFromProject(id, selectedUser.id);
+                                        setShowRemoveConfirm(false);
+                                        fetchOwners();
+                                    } catch (err) {
+                                        console.error("Failed to remove user", err);
+                                    }
+                                }}
+                            >
+                                Remove
+                            </button>
+
+                            <button
+                                className="secondary-btn"
+                                onClick={() => setShowRemoveConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showRemoveConfirm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h4>
+                            Are you sure you want to remove{" "}
+                            <strong>{selectedUser?.name}</strong>?
+                        </h4>
+
+                        <div className="modal-actions">
+                            <button
+                                className="danger-btn"
+                                onClick={async () => {
+                                    try {
+                                        await removeUserFromProject(id, selectedUser.id);
+                                        setShowRemoveConfirm(false);
+                                        fetchOwners();
+                                    } catch (err) {
+                                        console.error("Failed to remove user", err);
+                                    }
+                                }}
+                            >
+                                Remove
+                            </button>
+
+                            <button
+                                className="secondary-btn"
+                                onClick={() => setShowRemoveConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showAssignModal && (
+                <div className="modal-overlay">
+                    <div className="modal large">
+                        <h3>Assign Tech Lead</h3>
+
+                        <select
+                            value={assignselectedUser}
+                            onChange={(e) => setAssignSelectedUser(e.target.value)}
+                        >
+                            <option value="">Select a user</option>
+                            {unassignedUsers.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.name} ({user.email})
+                                </option>
+                            ))}
+                        </select>
+
+                        <div className="modal-actions">
+                            <button
+                                onClick={async () => {
+                                    if (!assignselectedUser) {
+                                        alert("Please select a user");
+                                        return;
+                                    }
+
+                                    await assignUserToProject(id, assignselectedUser);
+                                    alert("User assigned successfully");
+                                    setShowAssignModal(false);
+                                    setAssignSelectedUser("");
+                                }}
+                            >
+                                Assign
+                            </button>
+
+                            <button
+                                className="secondary"
+                                onClick={() => setShowAssignModal(false)}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
         </div>
     );
 }

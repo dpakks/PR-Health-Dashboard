@@ -446,6 +446,34 @@
 .delete-project-btn:hover {
   background: #dc2626;
 }
+
+.view-owner-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.view-owner-btn:hover {
+  background: #dc2626;
+}
+
+.assign-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.assign-btn:hover {
+  background: #dc2626;
+}
 /* SUMMARY SECTION */
 .summary-container {
   display: grid;
@@ -475,6 +503,13 @@
   font-size: 14px;
   opacity: 0.9;
 }
+
+.modal.large {
+  width: 70%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 
 /* Colors */
 .purple { background: #6366f1; }

@@ -5,7 +5,7 @@ const API_URL = "http://127.0.0.1:8000";
 export const getUsers = async () => {
   const token = localStorage.getItem("token");
 
-  const response = await axios.get(`${API_URL}/users/getAllUsers`, {
+  const response = await axios.get(`${API_URL}/users/getAllTechLeads`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

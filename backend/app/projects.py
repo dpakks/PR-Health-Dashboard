@@ -10,7 +10,7 @@ from typing import List
 from app.database import get_db
 from app.models import Project, User, UserProject
 from app.auth import get_current_user
-from app.schemas import ProjectCreate, ProjectOut, PullRequestOut
+from app.schemas import ProjectCreate, ProjectOut, PullRequestOut, UserResponse
 from app.services.github_service import GitHubService
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -168,6 +168,93 @@ def test_github():
         repo="Hello-World"
     )
     return prs
+
+# =====================================================
+# GET USERS ASSIGNED TO A PROJECT (ADMIN ONLY)
+# =====================================================
+@router.get("/{project_id}/users", response_model=List[UserResponse])
+def get_users_assigned_to_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Fetch all users assigned to a project (Admin only)
+    """
+
+    # -------------------------------------------------
+    # 1. Admin authorization
+    # -------------------------------------------------
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can view project users"
+        )
+
+    # -------------------------------------------------
+    # 2. Validate project
+    # -------------------------------------------------
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # -------------------------------------------------
+    # 3. Fetch assigned users
+    # -------------------------------------------------
+    users = (
+        db.query(User)
+        .join(UserProject, User.id == UserProject.user_id)
+        .filter(UserProject.project_id == project_id)
+        .all()
+    )
+
+    return users
+
+# =====================================================
+# REMOVE USER FROM PROJECT (ADMIN ONLY)
+# =====================================================
+@router.delete("/{project_id}/users/{user_id}", status_code=200)
+def remove_user_from_project(
+    project_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Remove a user from a project (Admin only)
+    """
+
+    # -------------------------------------------------
+    # 1. Authorization
+    # -------------------------------------------------
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can remove users from projects"
+        )
+
+    # -------------------------------------------------
+    # 2. Check assignment exists
+    # -------------------------------------------------
+    assignment = db.query(UserProject).filter(
+        UserProject.project_id == project_id,
+        UserProject.user_id == user_id
+    ).first()
+
+    if not assignment:
+        raise HTTPException(
+            status_code=404,
+            detail="User is not assigned to this project"
+        )
+
+    # -------------------------------------------------
+    # 3. Delete assignment
+    # -------------------------------------------------
+    db.delete(assignment)
+    db.commit()
+
+    return {"message": "User removed from project successfully"}
+
 
 
 

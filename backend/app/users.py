@@ -120,6 +120,20 @@ def get_all_users(
     return db.query(models.User).all()
 
 # =========================
+# Get All Tech Leads (ADMIN only)
+# =========================
+@router.get("/getAllTechLeads", response_model=list[schemas.UserResponse])
+def get_all_tech_leads(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    """
+    Admin can view all Tech Leads
+    """
+    return db.query(models.User).filter(models.User.role == "TECH_LEAD").all()
+
+
+# =========================
 # Get User By ID (Admin only)
 # =========================
 
