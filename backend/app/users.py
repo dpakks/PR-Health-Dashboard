@@ -132,6 +132,30 @@ def get_all_tech_leads(
     """
     return db.query(models.User).filter(models.User.role == "TECH_LEAD").all()
 
+# =========================
+# Get User Summary (ADMIN only)
+# =========================
+@router.get("/summary", response_model=schemas.UserSummaryResponse)
+def get_user_summary(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    """
+    Admin can view overall user summary
+    """
+    total_users = db.query(models.User).count()
+    total_tech_leads = db.query(models.User).filter(
+        models.User.role == "TECH_LEAD"
+    ).count()
+    total_admins = db.query(models.User).filter(
+        models.User.role == "ADMIN"
+    ).count()
+
+    return {
+        "total_users": total_users,
+        "total_tech_leads": total_tech_leads,
+        "total_admins": total_admins
+    }
 
 # =========================
 # Get User By ID (Admin only)

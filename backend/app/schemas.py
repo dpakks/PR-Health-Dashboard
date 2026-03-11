@@ -24,7 +24,11 @@ class UserResponse(BaseModel):
         "from_attributes": True
     }
 
-
+class UserSummaryResponse(BaseModel):
+    total_users: int
+    total_tech_leads: int
+    total_admins: int
+    
 # =========================
 # Auth Schemas
 # =========================

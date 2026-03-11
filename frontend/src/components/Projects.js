@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getProjects, createProject } from "../services/projectService";
 import { useNavigate } from "react-router-dom";
 
-
 const COLORS = ["#60a5fa", "#fb7185", "#fbbf24", "#a855f7", "#34d399"];
 
 function Projects() {
@@ -11,9 +10,9 @@ function Projects() {
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+  const [errors, setErrors] = useState({});
   const role = localStorage.getItem("role");
 
-  // Fetch projects
   const fetchProjects = async () => {
     try {
       const data = await getProjects();
@@ -27,7 +26,6 @@ function Projects() {
     fetchProjects();
   }, []);
 
-  // Get initials
   const getInitials = (name) =>
     name
       .split(" ")
@@ -35,10 +33,14 @@ function Projects() {
       .join("")
       .toUpperCase();
 
-  // Submit project
   const handleSubmit = async () => {
-    if (!name || !repoUrl) {
-      alert("All fields are required");
+    const newErrors = {};
+
+    if (!name.trim()) newErrors.name = "This field is required";
+    if (!repoUrl.trim()) newErrors.repoUrl = "This field is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -51,27 +53,37 @@ function Projects() {
       setShowModal(false);
       setName("");
       setRepoUrl("");
-      fetchProjects(); // refresh
+      setErrors({});
+      fetchProjects();
     } catch (error) {
       console.error("Project creation failed", error);
-      alert("Failed to create project");
     }
   };
 
-  // Clear form
   const handleClear = () => {
     setName("");
     setRepoUrl("");
+    setErrors({});
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setName("");
+    setRepoUrl("");
+    setErrors({});
   };
 
   return (
     <div className="projects-container">
-
       <h2 className="projects-title">Projects</h2>
 
       <div className="projects-grid">
         {projects.map((project, index) => (
-          <div key={project.id} className="project-card" onClick={() => navigate(`/projects/${project.id}`)}>
+          <div
+            key={project.id}
+            className="project-card"
+            onClick={() => navigate(`/projects/${project.id}`)}
+          >
             <div
               className="project-icon"
               style={{ background: COLORS[index % COLORS.length] }}
@@ -82,7 +94,6 @@ function Projects() {
           </div>
         ))}
 
-        {/* ADMIN ONLY → ADD PROJECT */}
         {role === "ADMIN" && (
           <div
             className="project-card add-project"
@@ -94,14 +105,10 @@ function Projects() {
         )}
       </div>
 
-      {/* TECH LEAD WITH NO PROJECTS */}
       {role !== "ADMIN" && projects.length === 0 && (
-        <p className="no-projects">
-          No projects assigned for you
-        </p>
+        <p className="no-projects">No projects assigned for you</p>
       )}
 
-      {/* MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -111,25 +118,34 @@ function Projects() {
               type="text"
               placeholder="Project Name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors((prev) => ({ ...prev, name: "" }));
+              }}
+              className={errors.name ? "input-error" : ""}
             />
+            {errors.name && <div className="field-error">{errors.name}</div>}
 
             <input
               type="text"
               placeholder="GitHub Repo URL"
               value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
+              onChange={(e) => {
+                setRepoUrl(e.target.value);
+                setErrors((prev) => ({ ...prev, repoUrl: "" }));
+              }}
+              className={errors.repoUrl ? "input-error" : ""}
             />
+            {errors.repoUrl && (
+              <div className="field-error">{errors.repoUrl}</div>
+            )}
 
             <div className="modal-actions">
               <button onClick={handleSubmit}>Submit</button>
               <button onClick={handleClear} className="secondary">
                 Clear
               </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="danger"
-              >
+              <button onClick={handleCloseModal} className="danger">
                 Close
               </button>
             </div>

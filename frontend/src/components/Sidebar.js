@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { FolderIcon, UserIcon, LogoutIcon } from "../icons/Icons";
 
 function Sidebar({ collapsed, toggle }) {
   const navigate = useNavigate();
@@ -19,17 +20,17 @@ function Sidebar({ collapsed, toggle }) {
       <ul className="sidebar-menu">
         {role === "ADMIN" && (
           <li onClick={() => navigate("/users")}>
-            👤 {!collapsed && "Users"}
+            <UserIcon /> {!collapsed && "Users"}
           </li>
         )}
 
         <li onClick={() => navigate("/projects")}>
-          📁 {!collapsed && "Projects"}
+          <FolderIcon /> {!collapsed && "Projects"}
         </li>
       </ul>
 
       <div className="sidebar-footer" onClick={handleLogout}>
-        ⎋ {!collapsed && "Logout"}
+        <LogoutIcon /> {!collapsed && "Logout"}
       </div>
     </div>
   );

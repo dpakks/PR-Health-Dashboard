@@ -44,3 +44,15 @@ export const deleteUser = async (id) => {
 
   return response.data;
 };
+
+export const getUserSummary = async () => {
+  const token = localStorage.getItem("token");
+
+  const response = await axios.get(`${API_URL}/users/summary`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};

@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 60
 
     # Database Configuration
-    DATABASE_URL: str = "postgresql://postgres:root@localhost:5432/pr_dashboard"
+    DATABASE_URL: str 
 
-    GITHUB_TOKEN: str = "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"
+    GITHUB_TOKEN: str 
     
     class Config: 
         env_file = ".env"
