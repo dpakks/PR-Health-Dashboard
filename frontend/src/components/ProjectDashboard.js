@@ -1,379 +1,386 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  getProjectPullRequests,
-  deleteProject,
-  getPRSummary,
-  getProjectUsers,
-  removeUserFromProject,
-  getAllTechLeads,
-  assignUserToProject,
+    getProjectPullRequests,
+    deleteProject,
+    getPRSummary,
+    getProjectUsers,
+    removeUserFromProject,
+    getAllTechLeads,
+    assignUserToProject,
 } from "../services/projectService";
 import { AddIcon, UsersIcon, DeleteIcon } from "../icons/Icons";
 
 function ProjectDashboard() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+    const { id } = useParams();
+    const navigate = useNavigate();
 
-  const [prs, setPrs] = useState([]);
-  const [headers, setHeaders] = useState([]);
-  const [summary, setSummary] = useState(null);
+    const [prs, setPrs] = useState([]);
+    const [headers, setHeaders] = useState([]);
+    const [summary, setSummary] = useState(null);
 
-  const [showOwnersModal, setShowOwnersModal] = useState(false);
-  const [owners, setOwners] = useState([]);
+    const [showOwnersModal, setShowOwnersModal] = useState(false);
+    const [owners, setOwners] = useState([]);
 
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignedUsers, setAssignedUsers] = useState([]);
-  const [allTechLeads, setAllTechLeads] = useState([]);
-  const [assignselectedUser, setAssignSelectedUser] = useState("");
-  const [assignErrors, setAssignErrors] = useState({});
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [assignedUsers, setAssignedUsers] = useState([]);
+    const [allTechLeads, setAllTechLeads] = useState([]);
+    const [assignselectedUser, setAssignSelectedUser] = useState("");
+    const [assignErrors, setAssignErrors] = useState({});
 
-  const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
+    const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
 
-  const role = localStorage.getItem("role");
-  const isAdmin = role === "ADMIN";
+    const role = localStorage.getItem("role");
+    const isAdmin = role === "ADMIN";
 
-  useEffect(() => {
-    const fetchPRs = async () => {
-      try {
-        const data = await getProjectPullRequests(id);
-        setPrs(data);
+    useEffect(() => {
+        const fetchPRs = async () => {
+            try {
+                const data = await getProjectPullRequests(id);
+                setPrs(data);
 
-        if (data.length > 0) {
-          const filteredHeaders = Object.keys(data[0]).filter(
-            (key) => key !== "id" && key !== "url"
-          );
-          setHeaders(filteredHeaders);
+                if (data.length > 0) {
+                    const filteredHeaders = Object.keys(data[0]).filter(
+                        (key) => key !== "id" && key !== "url"
+                    );
+                    setHeaders(filteredHeaders);
+                }
+            } catch (error) {
+                console.error("Failed to fetch PRs", error);
+            }
+        };
+
+        const fetchSummary = async () => {
+            try {
+                const data = await getPRSummary(id);
+                setSummary(data);
+            } catch (error) {
+                console.error("Failed to fetch summary", error);
+            }
+        };
+
+        fetchSummary();
+        fetchPRs();
+    }, [id]);
+
+    const handleDelete = async () => {
+        try {
+            await deleteProject(id);
+            setShowDeleteProjectModal(false);
+            navigate("/projects");
+        } catch (error) {
+            console.error("Delete failed", error);
         }
-      } catch (error) {
-        console.error("Failed to fetch PRs", error);
-      }
     };
 
-    const fetchSummary = async () => {
-      try {
-        const data = await getPRSummary(id);
-        setSummary(data);
-      } catch (error) {
-        console.error("Failed to fetch summary", error);
-      }
+    const fetchOwners = async () => {
+        try {
+            const data = await getProjectUsers(id);
+            setOwners(data);
+        } catch (error) {
+            console.error("Failed to fetch project users", error);
+        }
     };
 
-    fetchSummary();
-    fetchPRs();
-  }, [id]);
+    const fetchAssignData = async () => {
+        try {
+            const assigned = await getProjectUsers(id);
+            const allUsers = await getAllTechLeads();
 
-  const handleDelete = async () => {
-    try {
-      await deleteProject(id);
-      setShowDeleteProjectModal(false);
-      navigate("/projects");
-    } catch (error) {
-      console.error("Delete failed", error);
-    }
-  };
+            setAssignedUsers(assigned);
+            setAllTechLeads(allUsers);
+        } catch (err) {
+            console.error("Failed to fetch assignment data", err);
+        }
+    };
 
-  const fetchOwners = async () => {
-    try {
-      const data = await getProjectUsers(id);
-      setOwners(data);
-    } catch (error) {
-      console.error("Failed to fetch project users", error);
-    }
-  };
+    const handleAssign = async () => {
+        const newErrors = {};
 
-  const fetchAssignData = async () => {
-    try {
-      const assigned = await getProjectUsers(id);
-      const allUsers = await getAllTechLeads();
+        if (!assignselectedUser) {
+            newErrors.user = "This field is required";
+        }
 
-      setAssignedUsers(assigned);
-      setAllTechLeads(allUsers);
-    } catch (err) {
-      console.error("Failed to fetch assignment data", err);
-    }
-  };
+        if (Object.keys(newErrors).length > 0) {
+            setAssignErrors(newErrors);
+            return;
+        }
 
-  const handleAssign = async () => {
-    const newErrors = {};
+        try {
+            await assignUserToProject(id, assignselectedUser);
+            setShowAssignModal(false);
+            setAssignSelectedUser("");
+            setAssignErrors({});
+            fetchOwners();
+        } catch (err) {
+            console.error("Failed to assign user", err);
+        }
+    };
 
-    if (!assignselectedUser) {
-      newErrors.user = "This field is required";
-    }
+    const handleCloseAssignModal = () => {
+        setShowAssignModal(false);
+        setAssignSelectedUser("");
+        setAssignErrors({});
+    };
 
-    if (Object.keys(newErrors).length > 0) {
-      setAssignErrors(newErrors);
-      return;
-    }
+    const unassignedUsers = allTechLeads.filter(
+        (user) => !assignedUsers.some((u) => u.id === user.id)
+    );
 
-    try {
-      await assignUserToProject(id, assignselectedUser);
-      setShowAssignModal(false);
-      setAssignSelectedUser("");
-      setAssignErrors({});
-      fetchOwners();
-    } catch (err) {
-      console.error("Failed to assign user", err);
-    }
-  };
-
-  const handleCloseAssignModal = () => {
-    setShowAssignModal(false);
-    setAssignSelectedUser("");
-    setAssignErrors({});
-  };
-
-  const unassignedUsers = allTechLeads.filter(
-    (user) => !assignedUsers.some((u) => u.id === user.id)
-  );
-
-  return (
-    <div className="dashboard-container">
-      <button className="back-btn" onClick={() => navigate("/projects")}>
-        ← Back
-      </button>
-
-      <h2 className="dashboard-title">Open Pull Requests</h2>
-
-      {summary && (
-        <div className="summary-container">
-          <div className="summary-card purple">
-            <h2>{summary.total_open_prs}</h2>
-            <p>Total Open PRs</p>
-          </div>
-
-          <div className="summary-card blue">
-            <h2>{summary.stale_prs}</h2>
-            <p>Stale PRs</p>
-          </div>
-
-          <div className="summary-card orange">
-            <h2>{summary.average_days_open}</h2>
-            <p>Average Days Open</p>
-          </div>
-
-          <div className="summary-card red">
-            <h2>{summary.oldest_pr_days}</h2>
-            <p>Oldest PR Days</p>
-          </div>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="dashboard-header">
-          <button
-            className="assign-btn"
-            onClick={() => {
-              fetchAssignData();
-              setShowAssignModal(true);
-            }}
-          >
-            <AddIcon />
-            Assign Tech Lead
-          </button>
-
-          <button
-            className="view-owner-btn"
-            onClick={() => {
-              fetchOwners();
-              setShowOwnersModal(true);
-            }}
-          >
-            <UsersIcon />
-            View Project Owners
-          </button>
-
-          <button
-            className="delete-project-btn"
-            onClick={() => setShowDeleteProjectModal(true)}
-          >
-            <DeleteIcon />
-            Delete Project
-          </button>
-        </div>
-      )}
-
-      <table className="dashboard-table">
-        <thead>
-          <tr>
-            {headers.map((header) => (
-              <th key={header}>
-                {header.replace("_", " ").toUpperCase()}
-              </th>
-            ))}
-          </tr>
-        </thead>
-
-        <tbody>
-          {prs.map((pr) => (
-            <tr key={pr.id}>
-              {headers.map((header) => (
-                <td key={header}>
-                  {header === "days_open" ? (
-                    <span
-                      className={`days-badge ${
-                        pr.days_open >= 7 ? "danger" : "warning"
-                      }`}
-                    >
-                      {pr.days_open}
-                    </span>
-                  ) : (
-                    pr[header]
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {showOwnersModal && (
-        <div className="modal-overlay">
-          <div className="modal large">
-            <h3>Project Owners</h3>
-
-            <table className="dashboard-table">
-              <thead>
-                <tr>
-                  <th>NAME</th>
-                  <th>EMAIL</th>
-                  <th>ROLE</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {owners.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>{user.role}</td>
-                    <td>
-                      <button
-                        className="danger-btn"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowRemoveConfirm(true);
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <button
-              className="secondary-btn"
-              onClick={() => setShowOwnersModal(false)}
-            >
-              Close
+    return (
+        <div className="dashboard-container">
+            <button className="back-btn" onClick={() => navigate("/projects")}>
+                ← Back
             </button>
-          </div>
-        </div>
-      )}
 
-      {showRemoveConfirm && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h4>
-              Are you sure you want to remove{" "}
-              <strong>{selectedUser?.name}</strong>?
-            </h4>
+            <h2 className="dashboard-title">Open Pull Requests</h2>
 
-            <div className="modal-actions">
-              <button
-                className="danger-btn"
-                onClick={async () => {
-                  try {
-                    await removeUserFromProject(id, selectedUser.id);
-                    setShowRemoveConfirm(false);
-                    fetchOwners();
-                  } catch (err) {
-                    console.error("Failed to remove user", err);
-                  }
-                }}
-              >
-                Remove
-              </button>
+            {summary && (
+                <div className="summary-container">
+                    <div className="summary-card purple">
+                        <h2>{summary.total_open_prs}</h2>
+                        <p>Total Open PRs</p>
+                    </div>
 
-              <button
-                className="secondary-btn"
-                onClick={() => setShowRemoveConfirm(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                    <div className="summary-card blue">
+                        <h2>{summary.stale_prs}</h2>
+                        <p>Stale PRs</p>
+                    </div>
 
-      {showAssignModal && (
-        <div className="modal-overlay">
-          <div className="modal large">
-            <h3>Assign Tech Lead</h3>
+                    <div className="summary-card orange">
+                        <h2>{summary.average_days_open}</h2>
+                        <p>Average Days Open</p>
+                    </div>
 
-            <select
-              value={assignselectedUser}
-              onChange={(e) => {
-                setAssignSelectedUser(e.target.value);
-                setAssignErrors((prev) => ({ ...prev, user: "" }));
-              }}
-              className={assignErrors.user ? "input-error" : ""}
-            >
-              <option value="">Select a user</option>
-              {unassignedUsers.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </option>
-              ))}
-            </select>
-
-            {assignErrors.user && (
-              <div className="field-error">{assignErrors.user}</div>
+                    <div className="summary-card red">
+                        <h2>{summary.oldest_pr_days}</h2>
+                        <p>Oldest PR Days</p>
+                    </div>
+                </div>
             )}
 
-            <div className="modal-actions">
-              <button onClick={handleAssign}>Assign</button>
+            {isAdmin && (
+                <div className="dashboard-actions">
+                    <div className="dashboard-header">
+                        <button
+                            className="assign-btn"
+                            onClick={() => {
+                                fetchAssignData();
+                                setShowAssignModal(true);
+                            }}
+                        >
+                            <AddIcon />
+                            Assign Tech Lead
+                        </button>
 
-              <button className="secondary" onClick={handleCloseAssignModal}>
-                Close
-              </button>
+                        <button
+                            className="view-owner-btn"
+                            onClick={() => {
+                                fetchOwners();
+                                setShowOwnersModal(true);
+                            }}
+                        >
+                            <UsersIcon />
+                            View Project Owners
+                        </button>
+
+                        <button
+                            className="delete-project-btn"
+                            onClick={() => setShowDeleteProjectModal(true)}
+                        >
+                            <DeleteIcon />
+                            Delete Project
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="dashboard-table-wrapper">
+                <table className="dashboard-table">
+                    <thead>
+                        <tr>
+                            {headers.map((header) => (
+                                <th key={header}>
+                                    {header.replace("_", " ").toUpperCase()}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {prs.map((pr) => (
+                            <tr key={pr.id}>
+                                {headers.map((header) => (
+                                    <td key={header}>
+                                        {header === "days_open" ? (
+                                            <span
+                                                className={`days-badge ${pr.days_open >= 7 ? "danger" : "warning"
+                                                    }`}
+                                            >
+                                                {pr.days_open}
+                                            </span>
+                                        ) : header === "is_stale" ? (
+                                            <span className={pr[header] ? "status-badge stale" : "status-badge fresh"}>
+                                                {pr[header] ? "Yes" : "No"}
+                                            </span>
+                                        ) : (
+                                            pr[header]
+                                        )}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
-          </div>
+
+            {showOwnersModal && (
+                <div className="modal-overlay">
+                    <div className="modal large">
+                        <h3>Project Owners</h3>
+
+                        <table className="dashboard-table">
+                            <thead>
+                                <tr>
+                                    <th>NAME</th>
+                                    <th>EMAIL</th>
+                                    <th>ROLE</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {owners.map((user) => (
+                                    <tr key={user.id}>
+                                        <td>{user.name}</td>
+                                        <td>{user.email}</td>
+                                        <td>{user.role}</td>
+                                        <td>
+                                            <button
+                                                className="danger-btn"
+                                                onClick={() => {
+                                                    setSelectedUser(user);
+                                                    setShowRemoveConfirm(true);
+                                                }}
+                                            >
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        <button
+                            className="secondary-btn"
+                            onClick={() => setShowOwnersModal(false)}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {showRemoveConfirm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h4>
+                            Are you sure you want to remove{" "}
+                            <strong>{selectedUser?.name}</strong>?
+                        </h4>
+
+                        <div className="modal-actions">
+                            <button
+                                className="danger-btn"
+                                onClick={async () => {
+                                    try {
+                                        await removeUserFromProject(id, selectedUser.id);
+                                        setShowRemoveConfirm(false);
+                                        fetchOwners();
+                                    } catch (err) {
+                                        console.error("Failed to remove user", err);
+                                    }
+                                }}
+                            >
+                                Remove
+                            </button>
+
+                            <button
+                                className="secondary-btn"
+                                onClick={() => setShowRemoveConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showAssignModal && (
+                <div className="modal-overlay">
+                    <div className="modal large">
+                        <h3>Assign Tech Lead</h3>
+
+                        <select
+                            value={assignselectedUser}
+                            onChange={(e) => {
+                                setAssignSelectedUser(e.target.value);
+                                setAssignErrors((prev) => ({ ...prev, user: "" }));
+                            }}
+                            className={assignErrors.user ? "input-error" : ""}
+                        >
+                            <option value="">Select a user</option>
+                            {unassignedUsers.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.name} ({user.email})
+                                </option>
+                            ))}
+                        </select>
+
+                        {assignErrors.user && (
+                            <div className="field-error">{assignErrors.user}</div>
+                        )}
+
+                        <div className="modal-actions">
+                            <button onClick={handleAssign}>Assign</button>
+
+                            <button className="secondary" onClick={handleCloseAssignModal}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteProjectModal && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h3>Delete Project</h3>
+                        <p>
+                            Are you sure you want to delete this project?{" "}
+                            <b>This action cannot be undone.</b>
+                        </p>
+
+                        <div className="modal-actions">
+                            <button className="danger-btn" onClick={handleDelete}>
+                                Delete
+                            </button>
+
+                            <button
+                                className="secondary-btn"
+                                onClick={() => setShowDeleteProjectModal(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-
-      {showDeleteProjectModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Delete Project</h3>
-            <p>
-              Are you sure you want to delete this project?{" "}
-              <b>This action cannot be undone.</b>
-            </p>
-
-            <div className="modal-actions">
-              <button className="danger-btn" onClick={handleDelete}>
-                Delete
-              </button>
-
-              <button
-                className="secondary-btn"
-                onClick={() => setShowDeleteProjectModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 }
 
 export default ProjectDashboard;
