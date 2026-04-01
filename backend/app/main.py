@@ -1,24 +1,41 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
 from fastapi.openapi.utils import get_openapi
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.database import Base, engine
 from app import models
 from app.users import router as users_router
 from app.projects import router as project_router
-from fastapi.middleware.cors import CORSMiddleware
+from app.redis_client import test_redis_connection, redis_client
+from app.scheduler import start_scheduler, stop_scheduler
+
+
+# =====================================================
+# Lifespan — start/stop scheduler with the app
+# =====================================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("Redis connected:", test_redis_connection())
+    start_scheduler()
+    yield
+    # Shutdown
+    stop_scheduler()
+
 
 app = FastAPI(
     title="PR Health Dashboard API",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
-
-app.include_router(project_router)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React app
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,10 +43,31 @@ app.add_middleware(
 
 # Routers
 app.include_router(users_router)
+app.include_router(project_router)
+
 
 @app.get("/")
 def root():
     return {"message": "PR Health Dashboard API is running"}
+
+
+@app.get("/test/redis")
+def test_redis():
+    try:
+        redis_client.set("sample_key", "Hello Redis")
+        value = redis_client.get("sample_key")
+        return {"message": "Redis working", "value": value}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/test/send-notifications")
+def test_send_notifications():
+    from app.services.notification_service import send_pr_review_notifications
+    try:
+        send_pr_review_notifications()
+        return {"message": "Notification job executed. Check your terminal for logs."}
+    except Exception as e:
+        return {"message": "Failed", "error": str(e)}
+
 
 def custom_openapi():
     if app.openapi_schema:
@@ -59,4 +97,3 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
-

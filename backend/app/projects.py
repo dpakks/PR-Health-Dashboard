@@ -14,8 +14,41 @@ from app.schemas import ProjectCreate, ProjectOut, PullRequestOut, UserResponse
 from app.services.github_service import GitHubService
 from datetime import datetime, timezone
 from collections import defaultdict
+from app.redis_client import get_cache, set_cache, delete_cache
 
 STALE_DAYS = 7
+
+CACHE_EXPIRY_SECONDS = 300
+
+
+def validate_project_access(project_id: int, db: Session, current_user: User):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if current_user.role != "ADMIN":
+        assignment = db.query(UserProject).filter(
+            UserProject.project_id == project_id,
+            UserProject.user_id == current_user.id
+        ).first()
+
+        if not assignment:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+    return project
+
+
+def extract_owner_repo(repo_url: str):
+    repo_url = repo_url.rstrip("/")
+    try:
+        owner = repo_url.split("/")[-2]
+        repo = repo_url.split("/")[-1]
+        return owner, repo
+    except IndexError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -67,6 +100,10 @@ def assign_project(
 
     db.add(assignment)
     db.commit()
+    delete_cache(f"project:{project_id}:prs")
+    delete_cache(f"project:{project_id}:pr_summary")
+    delete_cache(f"project:{project_id}:pr_trends")
+    
 
     return {"message": "Tech Lead assigned successfully"}
 
@@ -126,6 +163,9 @@ def delete_project(
             status_code=404,
             detail="Project not found"
         )
+    delete_cache(f"project:{project_id}:prs")
+    delete_cache(f"project:{project_id}:pr_summary")
+    delete_cache(f"project:{project_id}:pr_trends")
 
     db.delete(project)
     db.commit()
@@ -267,57 +307,18 @@ def get_project_pull_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Fetch open pull requests for a project from GitHub.
-    Admin → any project
-    Tech Lead → only assigned projects
-    Adds PR metrics: days_open & is_stale
-    """
+    cache_key = f"project:{project_id}:prs"
 
-    # -------------------------------------------------
-    # 1. Fetch project
-    # -------------------------------------------------
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    cached_prs = get_cache(cache_key)
+    if cached_prs:
+        return cached_prs
 
-    # -------------------------------------------------
-    # 2. Authorization
-    # -------------------------------------------------
-    if current_user.role != "ADMIN":
-        assignment = db.query(UserProject).filter(
-            UserProject.project_id == project_id,
-            UserProject.user_id == current_user.id
-        ).first()
+    project = validate_project_access(project_id, db, current_user)
+    owner, repo = extract_owner_repo(project.repo_url)
 
-        if not assignment:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to view this project"
-            )
-
-    # -------------------------------------------------
-    # 3. Extract GitHub owner & repo
-    # -------------------------------------------------
-    repo_url = project.repo_url.rstrip("/")
-    try:
-        owner = repo_url.split("/")[-2]
-        repo = repo_url.split("/")[-1]
-    except IndexError:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid GitHub repository URL"
-        )
-
-    # -------------------------------------------------
-    # 4. Fetch PRs from GitHub
-    # -------------------------------------------------
     github = GitHubService()
     prs = github.get_open_pull_requests(owner=owner, repo=repo)
 
-    # -------------------------------------------------
-    # 5. Compute metrics
-    # -------------------------------------------------
     now = datetime.now(timezone.utc)
     normalized_prs = []
 
@@ -335,12 +336,13 @@ def get_project_pull_requests(
             "state": pr["state"],
             "source_branch": pr["head"]["ref"],
             "target_branch": pr["base"]["ref"],
-            "created_at": created_at,
+            "created_at": created_at.isoformat(),
             "days_open": days_open,
             "is_stale": days_open > STALE_DAYS,
             "url": pr["html_url"]
         })
 
+    set_cache(cache_key, normalized_prs, expiry=CACHE_EXPIRY_SECONDS)
     return normalized_prs
 
 @router.get("/{project_id}/pull-requests/summary")
@@ -349,81 +351,68 @@ def get_pr_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    PR Summary Metrics:
-    - Total open PRs
-    - Stale PR count
-    - Average days open
-    - Oldest PR age
-    """
+    summary_cache_key = f"project:{project_id}:pr_summary"
+    prs_cache_key = f"project:{project_id}:prs"
 
-    # -------------------------------------------------
-    # 1. Fetch project
-    # -------------------------------------------------
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    cached_summary = get_cache(summary_cache_key)
+    if cached_summary:
+        return cached_summary
 
-    # -------------------------------------------------
-    # 2. Authorization
-    # -------------------------------------------------
-    if current_user.role != "ADMIN":
-        assignment = db.query(UserProject).filter(
-            UserProject.project_id == project_id,
-            UserProject.user_id == current_user.id
-        ).first()
+    cached_prs = get_cache(prs_cache_key)
+    if cached_prs is None:
+        project = validate_project_access(project_id, db, current_user)
+        owner, repo = extract_owner_repo(project.repo_url)
 
-        if not assignment:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized"
+        github = GitHubService()
+        prs = github.get_open_pull_requests(owner=owner, repo=repo)
+
+        now = datetime.now(timezone.utc)
+        cached_prs = []
+
+        for pr in prs:
+            created_at = datetime.fromisoformat(
+                pr["created_at"].replace("Z", "+00:00")
             )
+            days_open = (now - created_at).days
 
-    # -------------------------------------------------
-    # 3. Extract owner & repo
-    # -------------------------------------------------
-    repo_url = project.repo_url.rstrip("/")
-    owner = repo_url.split("/")[-2]
-    repo = repo_url.split("/")[-1]
+            cached_prs.append({
+                "id": pr["number"],
+                "title": pr["title"],
+                "author": pr["user"]["login"],
+                "state": pr["state"],
+                "source_branch": pr["head"]["ref"],
+                "target_branch": pr["base"]["ref"],
+                "created_at": created_at.isoformat(),
+                "days_open": days_open,
+                "is_stale": days_open > STALE_DAYS,
+                "url": pr["html_url"]
+            })
 
-    # -------------------------------------------------
-    # 4. Fetch PRs
-    # -------------------------------------------------
-    github = GitHubService()
-    prs = github.get_open_pull_requests(owner=owner, repo=repo)
+        set_cache(prs_cache_key, cached_prs, expiry=CACHE_EXPIRY_SECONDS)
+    else:
+        validate_project_access(project_id, db, current_user)
 
-    if not prs:
-        return {
+    if not cached_prs:
+        summary = {
             "total_open_prs": 0,
             "stale_prs": 0,
             "average_days_open": 0,
             "oldest_pr_days": 0
         }
+        set_cache(summary_cache_key, summary, expiry=CACHE_EXPIRY_SECONDS)
+        return summary
 
-    # -------------------------------------------------
-    # 5. Compute metrics
-    # -------------------------------------------------
-    now = datetime.now(timezone.utc)
-    days_open_list = []
+    days_open_list = [pr["days_open"] for pr in cached_prs]
 
-    for pr in prs:
-        created_at = datetime.fromisoformat(
-            pr["created_at"].replace("Z", "+00:00")
-        )
-        days_open = (now - created_at).days
-        days_open_list.append(days_open)
-
-    total_open_prs = len(prs)
-    stale_prs = len([d for d in days_open_list if d > STALE_DAYS])
-    average_days_open = round(sum(days_open_list) / total_open_prs)
-    oldest_pr_days = max(days_open_list)
-
-    return {
-        "total_open_prs": total_open_prs,
-        "stale_prs": stale_prs,
-        "average_days_open": average_days_open,
-        "oldest_pr_days": oldest_pr_days
+    summary = {
+        "total_open_prs": len(cached_prs),
+        "stale_prs": len([d for d in days_open_list if d > STALE_DAYS]),
+        "average_days_open": round(sum(days_open_list) / len(cached_prs)),
+        "oldest_pr_days": max(days_open_list)
     }
+
+    set_cache(summary_cache_key, summary, expiry=CACHE_EXPIRY_SECONDS)
+    return summary
 
 @router.get("/{project_id}/pull-requests/trends")
 def get_pr_trends(
@@ -431,54 +420,52 @@ def get_pr_trends(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    PR Trend Metrics:
-    - PRs opened per day
-    - PRs opened per week
-    """
+    trends_cache_key = f"project:{project_id}:pr_trends"
+    prs_cache_key = f"project:{project_id}:prs"
 
-    # -------------------------------------------------
-    # 1. Fetch project
-    # -------------------------------------------------
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    cached_trends = get_cache(trends_cache_key)
+    if cached_trends:
+        return cached_trends
 
-    # -------------------------------------------------
-    # 2. Authorization
-    # -------------------------------------------------
-    if current_user.role != "ADMIN":
-        assignment = db.query(UserProject).filter(
-            UserProject.project_id == project_id,
-            UserProject.user_id == current_user.id
-        ).first()
+    cached_prs = get_cache(prs_cache_key)
+    if cached_prs is None:
+        project = validate_project_access(project_id, db, current_user)
+        owner, repo = extract_owner_repo(project.repo_url)
 
-        if not assignment:
-            raise HTTPException(status_code=403, detail="Not authorized")
+        github = GitHubService()
+        prs = github.get_open_pull_requests(owner=owner, repo=repo)
 
-    # -------------------------------------------------
-    # 3. Extract owner & repo
-    # -------------------------------------------------
-    repo_url = project.repo_url.rstrip("/")
-    owner = repo_url.split("/")[-2]
-    repo = repo_url.split("/")[-1]
+        now = datetime.now(timezone.utc)
+        cached_prs = []
 
-    # -------------------------------------------------
-    # 4. Fetch PRs from GitHub
-    # -------------------------------------------------
-    github = GitHubService()
-    prs = github.get_open_pull_requests(owner=owner, repo=repo)
+        for pr in prs:
+            created_at = datetime.fromisoformat(
+                pr["created_at"].replace("Z", "+00:00")
+            )
+            days_open = (now - created_at).days
 
-    # -------------------------------------------------
-    # 5. Build trends
-    # -------------------------------------------------
+            cached_prs.append({
+                "id": pr["number"],
+                "title": pr["title"],
+                "author": pr["user"]["login"],
+                "state": pr["state"],
+                "source_branch": pr["head"]["ref"],
+                "target_branch": pr["base"]["ref"],
+                "created_at": created_at.isoformat(),
+                "days_open": days_open,
+                "is_stale": days_open > STALE_DAYS,
+                "url": pr["html_url"]
+            })
+
+        set_cache(prs_cache_key, cached_prs, expiry=CACHE_EXPIRY_SECONDS)
+    else:
+        validate_project_access(project_id, db, current_user)
+
     daily_counts = defaultdict(int)
     weekly_counts = defaultdict(int)
 
-    for pr in prs:
-        created_at = datetime.fromisoformat(
-            pr["created_at"].replace("Z", "+00:00")
-        )
+    for pr in cached_prs:
+        created_at = datetime.fromisoformat(pr["created_at"])
 
         day_key = created_at.strftime("%Y-%m-%d")
         week_key = f"{created_at.year}-W{created_at.isocalendar().week}"
@@ -486,7 +473,10 @@ def get_pr_trends(
         daily_counts[day_key] += 1
         weekly_counts[week_key] += 1
 
-    return {
+    trends = {
         "daily": dict(daily_counts),
         "weekly": dict(weekly_counts)
     }
+
+    set_cache(trends_cache_key, trends, expiry=CACHE_EXPIRY_SECONDS)
+    return trends

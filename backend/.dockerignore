@@ -1,0 +1,36 @@
+# Virtual environment — the container installs its 
+# own dependencies from Requirements.txt
+venv/
+.venv/
+
+# Python cache files — regenerated at runtime
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment file — contains secrets (AWS keys, DB 
+# password). NEVER bake into an image. We pass these 
+# as environment variables in ECS instead.
+.env
+
+# Git folder — not needed in the container
+.git/
+.gitignore
+
+# IDE settings
+.vscode/
+.idea/
+
+# Terraform files (if any exist in backend/)
+*.tfstate
+*.tfvars
+.terraform/
+
+# Docker files (no need to copy themselves)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db

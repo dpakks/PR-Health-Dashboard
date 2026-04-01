@@ -24,11 +24,13 @@ class UserResponse(BaseModel):
         "from_attributes": True
     }
 
+
 class UserSummaryResponse(BaseModel):
     total_users: int
     total_tech_leads: int
     total_admins: int
-    
+
+
 # =========================
 # Auth Schemas
 # =========================
@@ -41,6 +43,43 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+# =========================
+# OTP Schemas
+# =========================
+
+class OTPRequest(BaseModel):
+    """Returned after successful email + password check."""
+    message: str
+    email: EmailStr
+
+
+class OTPVerify(BaseModel):
+    """Submitted by the user to verify the OTP."""
+    email: EmailStr
+    otp: str
+
+
+# =========================
+# Forgot Password Schemas
+# =========================
+
+class ForgotPasswordRequest(BaseModel):
+    """Step 1 — user submits their email."""
+    email: EmailStr
+
+
+class ForgotPasswordVerify(BaseModel):
+    """Step 2 — user submits the OTP they received."""
+    email: EmailStr
+    otp: str
+
+
+class ResetPasswordRequest(BaseModel):
+    """Step 3 — user sets a new password using the reset token."""
+    reset_token: str
+    new_password: str
 
 
 # =========================
@@ -63,6 +102,7 @@ class ProjectOut(BaseModel):
         "from_attributes": True
     }
 
+
 # =========================
 # Pull Request Schemas
 # =========================
@@ -78,4 +118,3 @@ class PullRequestOut(BaseModel):
     days_open: int
     is_stale: bool
     url: str
-

@@ -1,11 +1,10 @@
-import { useNavigate } from "react-router-dom";
-import { login } from "../services/authService";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { forgotPassword } from "../services/authService";
 
-function Login() {
+function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,14 +14,13 @@ function Login() {
     setLoading(true);
 
     try {
-      const data = await login(email, password);
+      const data = await forgotPassword(email);
 
-      // Login succeeded — OTP sent to email
-      // Navigate to OTP verification with email in state
-      navigate("/verify-otp", { state: { email: data.email } });
+      // OTP sent — navigate to verification
+      navigate("/forgot-verify-otp", { state: { email: data.email } });
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setError(detail || "Invalid email or password");
+      setError(detail || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -30,9 +28,10 @@ function Login() {
 
   return (
     <div className="login-container">
-      <h2 className="login-title">Log in</h2>
+      <h2 className="login-title">Forgot Password</h2>
       <p className="login-subtitle">
-        Enter your email and password to securely access your account
+        Enter your registered email address and we'll send you a verification
+        code
       </p>
 
       <form className="login-form" onSubmit={handleSubmit}>
@@ -44,25 +43,14 @@ function Login() {
           required
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-
         <button type="submit" disabled={loading}>
-          {loading ? "Sending OTP..." : "Login"}
+          {loading ? "Sending OTP..." : "Send Verification Code"}
         </button>
       </form>
 
       <div className="login-links">
-        <span
-          className="forgot-link"
-          onClick={() => navigate("/forgot-password")}
-        >
-          Forgot password?
+        <span className="back-to-login" onClick={() => navigate("/")}>
+          ← Back to Login
         </span>
       </div>
 
@@ -71,4 +59,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default ForgotPassword;
