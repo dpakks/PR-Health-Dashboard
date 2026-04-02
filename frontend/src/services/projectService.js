@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://pr-dashboard-alb-113873022.us-east-1.elb.amazonaws.com";
+const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 export const getAllTechLeads = async () => {
   const token = localStorage.getItem("token");

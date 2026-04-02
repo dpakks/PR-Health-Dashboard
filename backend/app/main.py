@@ -36,9 +36,9 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "https://d3vdqggl4icojs.cloudfront.net",
-        "http://d3vdqggl4icojs.cloudfront.net"
+    "http://localhost:3000",
+    "https://d3vdqggl4icojs.cloudfront.net",
+    "http://d3vdqggl4icojs.cloudfront.net"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -71,22 +71,31 @@ def test_send_notifications():
         return {"message": "Notification job executed. Check your terminal for logs."}
     except Exception as e:
         return {"message": "Failed", "error": str(e)}
-
-@app.get("/test/reset-admin-password")
-def reset_admin_password():
-    from app.database import SessionLocal
-    from app.models import User
-    from app.auth import hash_password
-    db = SessionLocal()
-    user = db.query(User).filter(User.email == "deepakkumar.somasundaram@gmail.com").first()
-    if user:
-        user.password_hash = hash_password("admin1234")
-        db.commit()
-        db.close()
-        return {"message": "Password reset"}
-    db.close()
-    return {"message": "User not found"}
-
+@app.get("/test/ses-debug")
+def ses_debug():
+    from app.config import settings
+    from app.services.ses_service import SESService
+    try:
+        ses = SESService()
+        result = ses.send_otp_email(
+            recipient="deepakkumar.somasundaram@gmail.com",
+            otp="123456",
+            purpose="login"
+        )
+        return {
+            "sent": result,
+            "sender": settings.SES_SENDER_EMAIL,
+            "region": settings.AWS_REGION,
+            "access_key_prefix": settings.AWS_ACCESS_KEY_ID[:8] + "..."
+        }
+    except Exception as e:
+        return {
+            "sent": False,
+            "error": str(e),
+            "sender": settings.SES_SENDER_EMAIL,
+            "region": settings.AWS_REGION,
+            "access_key_prefix": settings.AWS_ACCESS_KEY_ID[:8] + "..."
+        }
 
 def custom_openapi():
     if app.openapi_schema:
