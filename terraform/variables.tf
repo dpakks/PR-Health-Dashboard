@@ -160,3 +160,8 @@ variable "domain_name" {
   type        = string
   default     = ""
 }
+
+# variable "bastion_public_key" {
+#   description = "SSH public key for bastion host"
+#   type        = string
+# }
