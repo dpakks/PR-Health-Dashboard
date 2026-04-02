@@ -72,6 +72,21 @@ def test_send_notifications():
     except Exception as e:
         return {"message": "Failed", "error": str(e)}
 
+@app.get("/test/reset-admin-password")
+def reset_admin_password():
+    from app.database import SessionLocal
+    from app.models import User
+    from app.auth import hash_password
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == "deepakkumar.somasundaram@gmail.com").first()
+    if user:
+        user.password_hash = hash_password("admin1234")
+        db.commit()
+        db.close()
+        return {"message": "Password reset"}
+    db.close()
+    return {"message": "User not found"}
+
 
 def custom_openapi():
     if app.openapi_schema:
