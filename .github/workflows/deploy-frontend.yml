@@ -1,0 +1,70 @@
+# =====================================================
+# Frontend CI/CD Pipeline
+# =====================================================
+# Triggers on push to main branch when frontend files change.
+# Steps:
+#   1. Checkout code
+#   2. Install Node.js dependencies
+#   3. Build the React app (npm run build)
+#   4. Sync the build output to S3
+#   5. Invalidate CloudFront cache so users get fresh content
+# =====================================================
+
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+
+jobs:
+  deploy:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Get the latest code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      # Step 4: Build the React app
+      # REACT_APP_API_URL tells React where the backend is
+      - name: Build
+        working-directory: ./frontend
+        env:
+          REACT_APP_API_URL: http://${{ secrets.ALB_DNS_NAME }}
+        run: npm run build
+
+      # Step 5: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 6: Upload build files to S3
+      - name: Sync to S3
+        run: |
+          aws s3 sync frontend/build/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      # Step 7: Clear CloudFront cache
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
