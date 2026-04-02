@@ -74,27 +74,31 @@ def test_send_notifications():
 @app.get("/test/ses-debug")
 def ses_debug():
     from app.config import settings
-    from app.services.ses_service import SESService
+    import boto3
     try:
-        ses = SESService()
-        result = ses.send_otp_email(
-            recipient="deepakkumar.somasundaram@gmail.com",
-            otp="123456",
-            purpose="login"
+        client = boto3.client(
+            "ses",
+            region_name=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         )
-        return {
-            "sent": result,
-            "sender": settings.SES_SENDER_EMAIL,
-            "region": settings.AWS_REGION,
-            "access_key_prefix": settings.AWS_ACCESS_KEY_ID[:8] + "..."
-        }
+        response = client.send_email(
+            Source=settings.SES_SENDER_EMAIL,
+            Destination={"ToAddresses": ["deepakkumar.somasundaram@gmail.com"]},
+            Message={
+                "Subject": {"Data": "Test from ECS"},
+                "Body": {"Text": {"Data": "This is a test email from ECS"}},
+            },
+        )
+        return {"sent": True, "response": str(response)}
     except Exception as e:
         return {
             "sent": False,
+            "error_type": type(e).__name__,
             "error": str(e),
             "sender": settings.SES_SENDER_EMAIL,
             "region": settings.AWS_REGION,
-            "access_key_prefix": settings.AWS_ACCESS_KEY_ID[:8] + "..."
+            "access_key_prefix": settings.AWS_ACCESS_KEY_ID[:10] + "..."
         }
 
 def custom_openapi():
