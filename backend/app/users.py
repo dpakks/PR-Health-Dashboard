@@ -18,7 +18,7 @@ ses = SESService()
 
 
 # =============================================================
-# LOGIN FLOW  (Step 1 → Step 2)
+# LOGIN FLOW  (Step 1 to Step 2)
 # =============================================================
 
 # Step 1: Validate credentials → send OTP
