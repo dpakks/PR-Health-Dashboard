@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { verifyLoginOTP, login } from "../services/authService";
+import { verifyLoginOTP } from "../services/authService";
 import { jwtDecode } from "jwt-decode";
 
 const OTP_LENGTH = 6;
