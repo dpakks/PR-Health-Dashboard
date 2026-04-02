@@ -35,7 +35,11 @@ Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://d3vdqggl4icojs.cloudfront.net",
+        "http://d3vdqggl4icojs.cloudfront.net"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
