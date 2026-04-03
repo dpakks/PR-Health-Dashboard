@@ -1,0 +1,20 @@
+# env files
+.env
+**/.env
+
+# local terraform/state
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# node
+node_modules/
+dist/
+build/

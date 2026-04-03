@@ -12,7 +12,7 @@ from app.scheduler import start_scheduler, stop_scheduler
 
 
 # =====================================================
-# Lifespan — start/stop scheduler with the app
+# Lifespan — start/stop scheduler with the apps
 # =====================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,17 +71,6 @@ def test_send_notifications():
         return {"message": "Notification job executed. Check your terminal for logs."}
     except Exception as e:
         return {"message": "Failed", "error": str(e)}
-@app.get("/test/ses-debug")
-def ses_debug():
-    from app.config import settings
-    return {
-        "access_key_full": settings.AWS_ACCESS_KEY_ID,
-        "secret_key_length": len(settings.AWS_SECRET_ACCESS_KEY),
-        "secret_key_first5": settings.AWS_SECRET_ACCESS_KEY[:5],
-        "secret_key_last5": settings.AWS_SECRET_ACCESS_KEY[-5:],
-        "sender": settings.SES_SENDER_EMAIL,
-        "region": settings.AWS_REGION,
-    }
 
 def custom_openapi():
     if app.openapi_schema:
