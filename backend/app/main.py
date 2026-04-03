@@ -8,7 +8,7 @@ from app import models
 from app.users import router as users_router
 from app.projects import router as project_router
 from app.redis_client import test_redis_connection, redis_client
-from app.services.scheduler import start_scheduler, stop_scheduler
+from app.scheduler import start_scheduler, stop_scheduler
 
 
 # =====================================================
