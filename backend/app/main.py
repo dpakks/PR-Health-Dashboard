@@ -8,11 +8,11 @@ from app import models
 from app.users import router as users_router
 from app.projects import router as project_router
 from app.redis_client import test_redis_connection, redis_client
-from app.scheduler import start_scheduler, stop_scheduler
+from app.services.scheduler import start_scheduler, stop_scheduler
 
 
 # =====================================================
-# Lifespan — start/stop scheduler with the apps
+# Lifespan — start/stop scheduler with the app
 # =====================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,9 +36,11 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:3000",
-    "https://d3vdqggl4icojs.cloudfront.net",
-    "http://d3vdqggl4icojs.cloudfront.net"
+        "http://localhost:3000",
+        "https://prmonitor.site",
+        "http://prmonitor.site",
+        "https://d3vdqggl4icojs.cloudfront.net",
+        "http://d3vdqggl4icojs.cloudfront.net",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -63,14 +65,7 @@ def test_redis():
         return {"message": "Redis working", "value": value}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-@app.get("/test/send-notifications")
-def test_send_notifications():
-    from app.services.notification_service import send_pr_review_notifications
-    try:
-        send_pr_review_notifications()
-        return {"message": "Notification job executed. Check your terminal for logs."}
-    except Exception as e:
-        return {"message": "Failed", "error": str(e)}
+
 
 def custom_openapi():
     if app.openapi_schema:

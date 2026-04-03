@@ -1,11 +1,6 @@
 # =====================================================
 # S3 + CloudFront — hosts your React frontend
 # =====================================================
-# S3 stores the static files (HTML, CSS, JS).
-# CloudFront is a CDN that serves them globally with
-# low latency. Users never hit S3 directly — CloudFront
-# caches and delivers everything.
-# =====================================================
 
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.project_name}-frontend-${random_id.bucket_suffix.hex}"
@@ -15,12 +10,10 @@ resource "aws_s3_bucket" "frontend" {
   }
 }
 
-# Random suffix so bucket name is globally unique
 resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
 
-# Block all public access — CloudFront uses OAC instead
 resource "aws_s3_bucket_public_access_block" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
@@ -30,7 +23,6 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
   restrict_public_buckets = true
 }
 
-# CloudFront Origin Access Control — lets CloudFront read from S3
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-oac"
   origin_access_control_origin_type = "s3"
@@ -43,6 +35,9 @@ resource "aws_cloudfront_distribution" "frontend" {
   default_root_object = "index.html"
   comment             = "${var.project_name} frontend"
 
+  # Your custom domain
+  aliases = [var.domain_name]
+
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
     origin_id                = "s3-frontend"
@@ -53,7 +48,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = "s3-frontend"
-    viewer_protocol_policy = "allow-all"
+    viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
       query_string = false
@@ -67,7 +62,6 @@ resource "aws_cloudfront_distribution" "frontend" {
     max_ttl     = 31536000
   }
 
-  # Handle React Router — return index.html for all 404s
   custom_error_response {
     error_code         = 403
     response_code      = 200
@@ -86,8 +80,11 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
   }
 
+  # SSL certificate from ACM
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.main.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
@@ -95,7 +92,6 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-# S3 bucket policy — only CloudFront can read
 resource "aws_s3_bucket_policy" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
