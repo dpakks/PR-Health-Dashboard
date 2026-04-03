@@ -46,7 +46,7 @@ jobs:
       - name: Build
         working-directory: ./frontend
         env:
-          REACT_APP_API_URL: http://${{ secrets.ALB_DNS_NAME }}
+          REACT_APP_API_URL: https://api.prmonitor.site
         run: npm run build
 
       # Step 5: Configure AWS credentials

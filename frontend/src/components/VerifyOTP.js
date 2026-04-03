@@ -17,7 +17,7 @@ function VerifyOTP() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef([]);
 
-  // Redirect if no email in state (direct URL access)
+  // Redirect if no Email in state (direct URL access)
   useEffect(() => {
     if (!email) {
       navigate("/");
