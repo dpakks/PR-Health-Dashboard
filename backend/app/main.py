@@ -12,7 +12,7 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 
 
 # =====================================================
-# Lifespan — start/stop scheduler with the app
+# Lifespan — start/stop scheduler with the appp
 # =====================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
