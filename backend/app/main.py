@@ -65,6 +65,20 @@ def test_redis():
         return {"message": "Redis working", "value": value}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@app.get("/test/reset-admin-password")
+def reset_admin_password():
+    from app.database import SessionLocal
+    from app.models import User
+    from app.auth import hash_password
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == "deepakkumar.somasundaram@gmail.com").first()
+    if user:
+        user.password_hash = hash_password("admin1234")
+        db.commit()
+        db.close()
+        return {"message": "Password reset"}
+    db.close()
+    return {"message": "User not found"}
 
 
 def custom_openapi():

@@ -16,7 +16,7 @@ resource "aws_db_subnet_group" "main" {
 }
 
 resource "aws_db_instance" "main" {
-  identifier = "${var.project_name}-db"
+  identifier = "${var.project_name}-db-encrypted"
 
   engine         = "postgres"
   engine_version = "15"
@@ -33,8 +33,11 @@ resource "aws_db_instance" "main" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  # Temporarily public for migration — change back to false after
   publicly_accessible = false
+
+  # KMS Encryption
+  storage_encrypted = true
+  kms_key_id        = aws_kms_key.main.arn
 
   # Backup
   backup_retention_period = 7
@@ -47,6 +50,6 @@ resource "aws_db_instance" "main" {
   multi_az            = false
 
   tags = {
-    Name = "${var.project_name}-db"
+    Name = "${var.project_name}-db-encrypted"
   }
 }
